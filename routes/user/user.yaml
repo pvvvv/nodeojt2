@@ -1,0 +1,114 @@
+tags:
+  name: USER
+  description: USER API
+# 태그 방법을 다르게 할 수 있음. get과 post참조
+/:
+  get:
+    summary: "로그인 페이지 이동"
+    tags: [USER]
+    responses:
+      '200':
+        description: 서버에게 받은 결과 값
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                ok:
+                  type: boolean
+/user/login:
+  post:
+    summary: "유저 로그인"
+    tags:
+      - USER
+    requestBody:
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            type: "object"
+            properties:
+              id:
+                type: "integer"
+                description: "로그인 아이디"
+                example: "1212"
+              password:
+                type: "string"
+                description: "비밀번호(암호화 적용)"
+                example: "123123"
+            required:
+              - id
+              - password
+    responses:
+      '200':
+        description: "요청성공"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      
+      #passport 인증시 실패할때 어떻게 사용하는지?
+/join:
+  get:
+    summary: "회원가입 페이지로 이동"
+    tags:
+      - JOIN
+    responses:
+      '200':
+        description: 서버에게 받은 결과 값
+        content:
+          application/json:
+            properties:
+              ok:
+                type: boolean
+
+/user/findoverlap:
+  post:
+    summary: "아이디(사번) 중복확인" 
+    tags:
+      - USER
+    requestBody:
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            type: "object"
+            properties:
+              id:
+                type: "integer"
+                description: "로그인 아이디"
+                example: "1212"
+            required:
+              - id
+    responses:
+      '200':
+        description: "사용 가능한 사번"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      '400':
+        description: "변조된 데이터"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      '409':
+        description: "중복된 사번"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+  
+
+components:
+  schemas:
+    User:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          description: "사번"
+        password:
+          type: "string"
+          description: "비밀번호"
