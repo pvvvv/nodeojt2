@@ -35,15 +35,11 @@ exports.schedulerPage = async function(req, res, next){
     };
 };
  
-/* 스케줄러 인서트 페이지로 이동 */
-exports.scheduleInsertPage = async function(req, res, next){
-    res.render('insert-scheduler.html');
-};
 
 /* 특정 자원, 날짜 조회하여 예약된데이터 반환 */
 exports.findDate = async function(req, res, next){
     var OP = sequelize.Op;
-    var {startDate, roomName, calendarId, path} = req.body;
+    var {startDate, roomName, calendarId, path} = req.query;
     var minTime = startDate+"T00:00:00";
     var maxTime = startDate+"T23:59:59";
     var modNum = calendarId;
@@ -125,13 +121,12 @@ exports.findDate = async function(req, res, next){
 exports.findClosestTime = async function(req, res, next){
     var OP = sequelize.Op;
     var statusNum;
-    var {startDate, startTime, roomName,calendarId, path} = req.body;
+    var {startDate, startTime, roomName,calendarId, path} = req.query;
     var modNum = calendarId;
     var endDateMin = startDate+"T00:00:00";
     var endDateMax = startDate+"T23:59:59";
     var start = startDate+"T"+startTime;
 
-    console.log("2번")
     try {
         if(path !== undefined && path == "modify"){
             var tempData = await db.scheduler.findAll({
@@ -303,10 +298,10 @@ exports.findClosestTime = async function(req, res, next){
 /* 선택한 종료날짜와 종료시간으로 시간이 겹치지않도록 데이터를 조회하는 함수 */
 exports.findEndDate = async function(req, res, next){
     var OP = sequelize.Op;
-    var {endDate, roomName, endTime, calendarId, path} = req.body;
+    var {endDate, roomName, endTime, calendarId, path} = req.query;
     var modNum = calendarId;
     var start = endDate+"T"+endTime;
-    console.log("3번")
+
     try{
         if(path !== undefined && path == "modify"){
             var findData = await db.scheduler.findOne({
@@ -585,11 +580,115 @@ exports.scheduleModify = async function(req, res, next){
     }
 }
 
-exports.scheduleStatistics = async function(req, res, next){
-    var OP = sequelize.Op;
-    // 기한설정, (한달, 일주일, 하루), 회의실이름 으로 통계내기
-    var {startDate, endDate, path, location, id} = req.body
 
+/*
+ * 선택기간 전체 일정조회 및 개인 전체 일정조회
+ */
+exports.scheduleAllStatistics = async function(req, res, next){
+    logger.info("선택기간 일정 조회")
+    var OP = sequelize.Op;
+    var {startDateTime, endDateTime, location, id} = req.query
+
+    if(location == "전체"){
+        location = "호";
+    }
+    
+    var likeQuery = {[OP.like]:'%'+location+'%'}
+
+    try {
+        if(id == undefined){
+            var data = await db.scheduler.findAll({ // 선택기간 전체일정
+                where : {
+                    startDate : {
+                        [OP.gte] : startDateTime,
+                    },
+                    endDate : {
+                        [OP.lte] : endDateTime
+                    },
+                    location : likeQuery
+                }
+            }); 
+        }else{
+            var data = await db.scheduler.findAll({ // 선택기간 개인일정
+                where : {
+                    startDate : {
+                        [OP.gte] : startDateTime,
+                    },
+                    endDate : {
+                        [OP.lte] : endDateTime
+                    },
+                    location : likeQuery,
+                    id : id
+                }
+            }); 
+        }
+
+        logger.info("data : " + data);
+        res.status(200).json(data);
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+};
+/*
+ * 일별 일정조회 및 개인 일별 일정조회
+ */
+exports.scheduleDayStatistics = async function(req, res, next){
+    logger.info("일별 일정 조회")
+    var OP = sequelize.Op;
+    var {startDate, location, id} = req.query
+    var maxDate = startDate.substring(0,10)+"T23:59:59";
+    if(location == "전체"){
+        location = "호";
+    }
+
+    var likeQuery = {[OP.like]:'%'+location+'%'}
+
+    try {
+        if(id == undefined){
+            logger.info("일별로 전체일정 조회")
+            
+            var data = await db.scheduler.findAll({
+                where : {
+                    startDate : {
+                        [OP.gte] : startDate,
+                        [OP.lte] : maxDate
+                    },
+                    location : likeQuery
+                }
+            });
+        }else{
+            var data = await db.scheduler.findAll({
+                where : {
+                    startDate : {
+                        [OP.gte] : startDate,
+                        [OP.lte] : maxDate
+                    },
+                    location: likeQuery,
+                    id : id
+                }
+            });
+        }
+
+        logger.info("data : " + data);
+        res.status(200).json(data);
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+};
+/*
+ * 주별 일정조회 및 개인 주별 일정조회
+ */
+exports.scheduleWeekStatistics = async function(req, res, next){
+    logger.info("주별 일정 조회")
+    var {startDate, location, id} = req.query
+    var choiceDate = new Date(startDate);
+    var day = choiceDate.getDay();
+    var diff = choiceDate.getDate() - day + (day == 0 ? -6 : 1);
+    var startWeeksunday = new Date(choiceDate.setDate(diff)).toISOString().substring(0, 10)+"T08:00:00";
+    var endWeeksatday = new Date(choiceDate.setDate(diff+6)).toISOString().substring(0, 10)+"T23:59:59";;
+    
     if(location == "전체"){
         location = "호";
     }
@@ -597,143 +696,86 @@ exports.scheduleStatistics = async function(req, res, next){
 
     try {
         if(id == undefined){
-            if(path !== null && path == "day"){ // 일별 전체일정
-                logger.info("일별로 전체일정 조회")
-                var maxDate = startDate.substring(0,10)+"T23:59:59";
-                var data = await db.scheduler.findAll({
-                    where : {
-                        startDate : {
-                            [OP.gte] : startDate,
-                            [OP.lte] : maxDate
-                        },
-                        location : likeQuery
-                    }
-                });
-            }else if(path !== null && path == "week"){// 주별 전체일정
-                logger.info("주별로 전체일정 조회")
-                var choiceDate = new Date(startDate);
-                var day = choiceDate.getDay();
-                var diff = choiceDate.getDate() - day + (day == 0 ? -6 : 1);
-                var startWeeksunday = new Date(choiceDate.setDate(diff)).toISOString().substring(0, 10)+"T08:00:00";
-                var endWeeksatday = new Date(choiceDate.setDate(diff+6)).toISOString().substring(0, 10)+"T23:59:59";;
-                var data = await db.scheduler.findAll({
-                    where : {
-                        startDate : {
-                            [OP.gte] : startWeeksunday,
-                        },
-                        endDate : {
-                            [OP.lte] : endWeeksatday
-                        },
-                        location : likeQuery
-                    }
-                });
-            }else if(path !== null && path == "month"){ // 월별 전체일정
-                logger.info("월별로 전체일정 조회")
-                var yyyy = startDate.substring(0,4)
-                var mm = startDate.substring(5,7)
-                var minDate = new Date(yyyy,mm-1,2).toISOString().substring(0,10)+"T23:59:59";
-                var maxDate = new Date(yyyy,mm,1).toISOString().substring(0,10)+"T23:59:59";
-    
-                var data = await db.scheduler.findAll({
-                    where : {
-                        startDate : {
-                            [OP.gte] : minDate,
-                        },
-                        endDate : {
-                            [OP.lte] : maxDate
-                        },
-                        location : {
-                            [OP.like] : "%"+location+"%"
-                        }
-                    }
-                });
-            }else{
-                logger.info("선택기간 전체일정 조회")
-                var data = await db.scheduler.findAll({ // 선택기간 전체일정
-                    where : {
-                        startDate : {
-                            [OP.gte] : startDate,
-                        },
-                        endDate : {
-                            [OP.lte] : endDate
-                        },
-                        location : location
-                    }
-                });
-            }
+            var data = await db.scheduler.findAll({
+                where : {
+                    startDate : {
+                        [OP.gte] : startWeeksunday,
+                    },
+                    endDate : {
+                        [OP.lte] : endWeeksatday
+                    },
+                    location : likeQuery
+                }
+            });
         }else{
-            logger.info("일별로 개인일정 조회");
-            if(path !== null && path == "day"){ // 일별 개별일정
-                var maxDate = startDate.substring(0,10)+"T23:59:59";
-                var data = await db.scheduler.findAll({
-                    where : {
-                        startDate : {
-                            [OP.gte] : startDate,
-                            [OP.lte] : maxDate
-                        },
-                        location: location,
-                        id : id
-                    }
-                });
-            }else if(path !== null && path == "week"){// 주별 개별일정
-                logger.info("주별로 개인일정 조회");
-                var choiceDate = new Date(startDate);
-                var day = choiceDate.getDay();
-                var diff = choiceDate.getDate() - day + (day == 0 ? -6 : 1);
-                var startWeeksunday = new Date(choiceDate.setDate(diff)).toISOString().substring(0, 10)+"T08:00:00";
-                var endWeeksatday = new Date(choiceDate.setDate(diff+6)).toISOString().substring(0, 10)+"T23:59:59";;
-                var data = await db.scheduler.findAll({
-                    where : {
-                        startDate : {
-                            [OP.gte] : startWeeksunday,
-                        },
-                        endDate : {
-                            [OP.lte] : endWeeksatday
-                        },
-                        location : location,
-                        id : id
-                    }
-                });
-            }else if(path !== null && path == "month"){ // 월별 개별일정
-                logger.info("월별로 개별일정 조회");
-                var yyyy = startDate.substring(0,4)
-                var mm = startDate.substring(5,7)
-                var minDate = new Date(yyyy,mm-1,2).toISOString().substring(0,10)+"T23:59:59";
-                var maxDate = new Date(yyyy,mm,1).toISOString().substring(0,10)+"T23:59:59";
-    
-                var data = await db.scheduler.findAll({
-                    where : {
-                        startDate : {
-                            [OP.gte] : minDate,
-                        },
-                        endDate : {
-                            [OP.lte] : maxDate
-                        },
-                        location : location,
-                        id : id
-                    }
-                });
-            }else{
-                logger.info("선택기간 개별일정 조회")
-                var data = await db.scheduler.findAll({ // 선택기간 개별일정
-                    where : {
-                        startDate : {
-                            [OP.gte] : startDate,
-                        },
-                        endDate : {
-                            [OP.lte] : endDate
-                        },
-                        location : location,
-                        id : id
-                    }
-                });
-            }
+            var data = await db.scheduler.findAll({
+                where : {
+                    startDate : {
+                        [OP.gte] : startWeeksunday,
+                    },
+                    endDate : {
+                        [OP.lte] : endWeeksatday
+                    },
+                    location : likeQuery,
+                    id : id
+                }
+            });
         }
+
+        logger.info("data : " + data);
+        res.status(200).json(data);
     } catch (error) {
         logger.error(error);
         next(error);
     }
+};
 
-    logger.info("data : " + data);
-    res.status(200).json(data);
-}
+exports.scheduleMonthStatistics = async function(req, res, next){
+    logger.info("월별 일정 조회")
+    var {startDate, location, id} = req.query
+    var yyyy = startDate.substring(0,4)
+    var mm = startDate.substring(5,7)
+    var minDate = new Date(yyyy,mm-1,2).toISOString().substring(0,10)+"T23:59:59";
+    var maxDate = new Date(yyyy,mm,1).toISOString().substring(0,10)+"T23:59:59";
+
+    try {
+        if(id == undefined){
+            var data = await db.scheduler.findAll({
+                where : {
+                    startDate : {
+                        [OP.gte] : minDate,
+                    },
+                    endDate : {
+                        [OP.lte] : maxDate
+                    },
+                    location : {
+                        [OP.like] : "%"+location+"%"
+                    }
+                }
+            });
+        }else{
+            var data = await db.scheduler.findAll({
+                where : {
+                    startDate : {
+                        [OP.gte] : minDate,
+                    },
+                    endDate : {
+                        [OP.lte] : maxDate
+                    },
+                    location : location,
+                    id : id
+                }
+            });
+        }
+
+        logger.info("data : " + data);
+        res.status(200).json(data);
+    } catch (error) {
+        logger.error(error);
+        next(error);
+    }
+};
+
+
+
+
