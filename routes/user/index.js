@@ -12,6 +12,10 @@ router.post('/join', userController.doJoin);
 router.post('/login', userController.doLogin);
 /* 로그아웃 */
 router.get('/logout', auth, userController.logout);
+/* 토큰테스트 */
+router.get('/test', auth, (req, res) => {
+    res.json(req.decoded);
+});
 
 
 

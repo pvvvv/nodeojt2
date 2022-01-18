@@ -61,9 +61,9 @@ app.use(passport.initialize());
 
 // });
 
-app.use('/', indexRouter);
-app.use('/scheduler', schedulerRouter);
-app.use('/user', userRouter);
+app.use('/v1', indexRouter);
+app.use('/v1/scheduler', schedulerRouter);
+app.use('/v1/user', userRouter);
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 

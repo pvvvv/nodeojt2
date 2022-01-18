@@ -11,7 +11,19 @@ const options = {
             description: '스웨~~~~~~~~~ㄱ'
         },
         host: 'localhost:3000',
-        basePath: '/'
+        basePath: '/',
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT'
+                }
+            }
+        },
+        security: [
+            { bearerAuth: [] }
+        ],
     },
     apis: [
         path.join(__dirname, '../routes/*/*.yaml'),

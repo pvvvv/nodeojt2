@@ -1,28 +1,30 @@
 var passport = require('passport'); // passport require
 var LoaclStrategy = require('passport-local').Strategy; // passport-local.Strategy require
 var JwtStrategy = require('passport-jwt').Strategy;
-var ExtractJwt = require('passport-jwt').ExtractJwt; 
+var ExtractJwt = require('passport-jwt').ExtractJwt;
+var logger = require('../config/logger')
 var opts = {}
 var db = require("../models"); // DB
 const jwtKey = require('../config/jwt-index');
 var bcrypt = require('bcrypt');
 
 
-module.exports = function(res ,req){
+module.exports = () => {
     passport.serializeUser(function(user, done){
         done(null, user);
     });
 
     passport.deserializeUser(async function(user, done){
-        console.log("11");
+        logger.info("PASSPORT : deserializeUser");
         try {    
             if(user === undefined || user === null){
                 return done(null, false);
             }else{
                 return done(null, user);
-            }// 세션
+            }
         } catch (error) {
-            
+            console.log(error);
+            return done(null, false);
         };
     });
     
@@ -30,21 +32,20 @@ module.exports = function(res ,req){
         jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
         secretOrKey: jwtKey.jwtKey.SECRET
     },(paylode, next)=>{
+        logger.info("PASSPORT : paylode.id : " + paylode.id);
         db.user.findOne({
             where:{
                 id: paylode.id,
             }
         }).then(async (user)=>{
-            console.log("1");
+            logger.info("PASSPORT : user.id : " + user.id);
             if(!user){
-                console.log("2");
                 next(null, false);
             }else{
-                console.log("3");
                 next(null, user);
             }
         }).catch((err) =>{
-            console.log(err);
+            logger.error("PASSPORT : err : " + err);
             next(null, false);
         });
     }

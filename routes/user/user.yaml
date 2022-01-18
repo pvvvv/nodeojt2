@@ -2,20 +2,7 @@ tags:
   name: USER
   description: USER API
 # 태그 방법을 다르게 할 수 있음. get과 post참조
-/:
-  get:
-    summary: "로그인 페이지 이동"
-    tags: [USER]
-    responses:
-      '200':
-        description: 서버에게 받은 결과 값
-        content:
-          application/json:
-            schema:
-              type: "object"
-              properties:
-                ok:
-                  type: boolean
+
 /user/login:
   post:
     summary: "유저 로그인"
@@ -46,21 +33,7 @@ tags:
           application/json:
             schema:
               $ref: "#/components/schemas/User"
-      
       #passport 인증시 실패할때 어떻게 사용하는지?
-/join:
-  get:
-    summary: "회원가입 페이지로 이동"
-    tags:
-      - JOIN
-    responses:
-      '200':
-        description: 서버에게 받은 결과 값
-        content:
-          application/json:
-            properties:
-              ok:
-                type: boolean
 
 /user/findoverlap:
   post:
@@ -99,7 +72,15 @@ tags:
           application/json:
             schema:
               $ref: "#/components/schemas/User"
+
+# /user/logout:
+#   post:
+#     security:
+#         - bearerAuth: []
+
   
+
+
 
 components:
   schemas:

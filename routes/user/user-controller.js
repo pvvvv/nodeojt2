@@ -117,7 +117,11 @@ exports.doLogin = async function(req, res, next){
                 {id: findData.id},
                 jwtKey.jwtKey.SECRET
             );
-            res.json({token});
+            res.json({
+                code: 200,
+                message: '토큰이 발급되었습니다.',
+                token
+            });
         }
         res.status(statusNum).json();
     } catch (error) {
@@ -131,7 +135,10 @@ exports.logout = async function(req, res, next){
         req.session.destroy(function(){ 
             req.session;
         });
-        res.status(200).json();
+        res.status(200).json({
+            code : 200,
+            message: '로그아웃 완료',
+        });
     } catch (error) {
         next(error);
     };
