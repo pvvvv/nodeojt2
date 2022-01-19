@@ -2,12 +2,65 @@ tags:
   name: USER
   description: USER API
 # 태그 방법을 다르게 할 수 있음. get과 post참조
-
-/user/login:
+/v1/user/join:
   post:
-    summary: "유저 로그인"
+    security: []
     tags:
       - USER
+    summary: "회원가입"
+    requestBody:
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            type: "object"
+            properties:
+              id:
+                type: "integer"
+                description: "사번"
+                example: "1212"
+              name:
+                type: "string"
+                description: "이름"
+                example: "최불암"
+              password:
+                type: "string"
+                description: "비밀번호"
+                example: "123123"
+    responses:
+      '200':
+        description: "요청성공"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '400':
+        description: "요청실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '401':
+        description: "요청실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '409':
+        description: "요청실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+
+
+
+/v1/user/login:
+  post:
+    security: []
+    tags:
+      - USER
+    summary: "유저 로그인"
     requestBody:
       required: true
       content:
@@ -32,11 +85,23 @@ tags:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
-      #passport 인증시 실패할때 어떻게 사용하는지?
+              $ref: "#/components/schemas/Rtn"
+      '406':
+        description: "요청실패"
+        cotent:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '401':
+        description: "요청실패"
+        cotent:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
 
-/user/findoverlap:
+/v1/user/overlap:
   post:
+    security: []
     summary: "아이디(사번) 중복확인" 
     tags:
       - USER
@@ -49,7 +114,7 @@ tags:
             properties:
               id:
                 type: "integer"
-                description: "로그인 아이디"
+                description: "사번"
                 example: "1212"
             required:
               - id
@@ -59,24 +124,44 @@ tags:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
+              $ref: "#/components/schemas/Rtn"
       '400':
         description: "변조된 데이터"
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
+              $ref: "#/components/schemas/Rtn"
       '409':
         description: "중복된 사번"
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
+              $ref: "#/components/schemas/Rtn"
 
-# /user/logout:
-#   post:
-#     security:
-#         - bearerAuth: []
+/v1/user/logout:
+  get:
+    tags:
+      - USER
+    summary: "로그아웃"
+    responses:
+      '200':
+        description: "로그아웃 성공"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '401':
+        description: "토큰검증실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '419':
+        description: "만료된 토큰"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
 
   
 
@@ -84,6 +169,24 @@ tags:
 
 components:
   schemas:
+    Rtn:
+      type: "object"
+      properties:
+        code:
+          type: "integer"
+          format: "int32"
+        message:
+          type: "string"
+        data:
+          type: "object"
+    RtnMessage:
+      type: "object"
+      properties:
+        code:
+          type: "integer"
+          format: "int32"
+        message:
+          type: "string"
     User:
       type: "object"
       properties:

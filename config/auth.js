@@ -5,7 +5,11 @@ var logger = require('../config/logger')
 
 module.exports = (req, res, next) => 
     passport.authenticate('jwt',{session : false}, async (error, user, info) => {
-        logger.info("토큰검증")
+        logger.info(info);
+        logger.info("토큰검증");
+        logger.info(user);
+        logger.info(error);
+
         if(error !== null && error.name === 'TokenExpiredError'){
             return res.status(419).json({
                 code: 419,

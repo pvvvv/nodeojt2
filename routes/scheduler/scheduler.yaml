@@ -1,0 +1,475 @@
+/v1/scheduler/:
+  get:
+    tags:
+      - SCHEDULER
+    summary: "스케줄러 페이지"
+    responses:
+      '200':
+        description: "요청성공, 데이터 다 가져옴"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Rtn"
+      '206':
+        description: "요청성공이지만, 데이터는 없음"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+  post:
+    tags:
+      - SCHEDULER
+    summary: "스케줄 입력"
+    requestBody:
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            type: "object"
+            properties:
+              name:
+                type: "string"
+                description: "이름"
+                example: "코난"
+              location:
+                type: "string"
+                description: "회의실 명"
+                example: "302호"
+              title:
+                type: "string"
+                description: "회의명"
+                example: "중식메뉴 선정회의"
+              startDate:
+                type: "date"
+                description: "시작날짜"
+                example: "2022-02-01"
+              startTime:
+                type: "date"
+                description: "시작시간"
+                example: "08:00:00"
+              endDate:
+                type: "string"
+                description: "종료날짜"
+                example: "2022-02-01"
+              endTime:
+                type: "string"
+                description: "종료시간"
+                example: "15:00:00"
+              allday:
+                type: "string"
+                description: "종일여부 true 또는 false"
+                example: "false"
+              id:
+                type: "string"
+                description: "id(사번)"
+                example: "1212"
+    responses:
+      '200':
+        description: "요청성공"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '406':
+        description: "데이터 입력실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '400':
+        description: "요청실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+  put:
+    tags:
+      - SCHEDULER
+    summary: "스케줄 업데이트"
+    requestBody:
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            type: "object"
+            properties:
+              name:
+                type: "string"
+                description: "이름"
+                example: "코난"
+              location:
+                type: "string"
+                description: "회의실 명"
+                example: "302호"
+              title:
+                type: "string"
+                description: "회의명"
+                example: "중식메뉴 선정회의"
+              startDate:
+                type: "date"
+                description: "시작날짜"
+                example: "2022-02-01"
+              startTime:
+                type: "date"
+                description: "시작시간"
+                example: "08:00:00"
+              endDate:
+                type: "string"
+                description: "종료날짜"
+                example: "2022-02-01"
+              endTime:
+                type: "string"
+                description: "종료시간"
+                example: "15:00:00"
+              allday:
+                type: "string"
+                description: "종일여부 true 또는 false"
+                example: "false"
+              id:
+                type: "integer"
+                description: "id(사번)"
+                example: "1212"
+              calendarId:
+                type: "integer"
+                description: "수정하는 일정의 ID"
+                example: "1"
+    responses:
+      '200':
+        description: "수정완료"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '406':
+        description: "데이터 수정실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '400':
+        description: "요청실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+  delete:
+    tags:
+      - SCHEDULER
+    summary: "스케줄 삭제"
+    requestBody:
+      required: true
+      content:
+        application/x-www-form-urlencoded:
+          schema:
+            type: "object"
+            properties:
+              id:
+                type: "integer"
+                description: "아이디(사번)"
+                example: "1212"
+              calendarId:
+                type: "integer"
+                description: "수정하는 일정의 ID"
+                example: "1"
+    responses:
+      '200':
+        description: "삭제완료"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"
+      '400':
+        description: "데이터 삭제실패"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"          
+      '401':
+        description: "권한없음"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"          
+      '409':
+        description: "데이터 찾을수 없음"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RtnMessage"          
+
+/v1/scheduler/statistics/all:
+  get:
+    tags:
+      - STATISTICS
+    summary: "스케줄 전체기간 통계"
+    parameters:
+      - name: startDateTime
+        in: "query"
+        required: true
+        type: "DateTime"
+        example: "2022-01-01 08:00:00"
+      - name: endDateTime
+        in: "query"
+        required: true
+        type: "DateTime"
+        example: "2022-01-30 19:00:00"
+      - name: location
+        in: "query"
+        required: true
+        type: "string"
+        description: "회의실 명 또는 '전체' 입력"
+        example: "전체"
+      - name: id
+        in: "query"
+        required: false
+        type: "integer"
+        description: "사번 또는 'all' 입력"
+        example: "all"
+    responses:
+        '200':
+          description: "조회완료"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rtn"
+
+/v1/scheduler/statistics/day:
+  get:
+    tags:
+      - STATISTICS
+    summary: "스케줄 일별 통계"
+    parameters:
+      - name: startDate
+        in: "query"
+        required: true
+        type: "DateTime"
+        example: "2022-01-01 08:00:00"
+      - name: location
+        in: "query"
+        required: true
+        type: "string"
+        description: "회의실 명 또는 '전체' 입력"
+        example: "전체"
+      - name: id
+        in: "query"
+        required: false
+        type: "integer"
+        description: "사번 또는 'all' 입력"
+        example: "all"
+    responses:
+        '200':
+          description: "조회완료"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rtn"        
+
+/v1/scheduler/statistics/week:
+  get:
+    tags:
+      - STATISTICS
+    summary: "스케줄 주별 통계"
+    parameters:
+      - name: startDate
+        in: "query"
+        required: true
+        type: "DateTime"
+        example: "2022-01-01 08:00:00"
+      - name: location
+        in: "query"
+        required: true
+        type: "string"
+        description: "회의실 명 또는 '전체' 입력"
+        example: "전체"
+      - name: id
+        in: "query"
+        required: false
+        type: "integer"
+        description: "사번 또는 'all' 입력"
+        example: "all"
+    responses:
+        '200':
+          description: "조회완료"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rtn" 
+
+/v1/scheduler/statistics/month:
+  get:
+    tags:
+      - STATISTICS
+    summary: "스케줄 월별 통계"
+    parameters:
+      - name: startDate
+        in: "query"
+        required: true
+        type: "DateTime"
+        example: "2022-01-01 08:00:00"
+      - name: location
+        in: "query"
+        required: true
+        type: "string"
+        description: "회의실 명 또는 '전체' 입력"
+        example: "전체"
+      - name: id
+        in: "query"
+        required: false
+        type: "integer"
+        description: "사번 또는 'all' 입력"
+        example: "all"
+    responses:
+        '200':
+          description: "조회완료"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rtn"
+
+/v1/scheduler/date:
+  get:
+    tags:
+      - SCHEDULE INSERT AJAX
+    summary: "특정 자원, 날짜 조회하여 예약된데이터 반환"
+    parameters:
+      - name: startDate
+        in: "query"
+        required: true
+        type: "DateTime"
+        example: "2022-01-01"
+      - name: roomName
+        in: "query"
+        required: true
+        type: "string"
+        description: "회의실"
+        example: "301호"
+      - name: calendarId
+        in: "query"
+        required: true
+        type: "integer"
+        description: "스케줄 수정중이라면 스케줄ID 입력"
+        example: "null"
+      - name: path
+        in: "query"
+        required: false
+        type: "integer"
+        description: "스케줄 수정중이라면 'modify' 입력"
+        example: "null"
+    responses:
+      '200':
+        description: "조회완료"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Rtn"
+
+/v1/scheduler/end-date:
+  get:
+    tags:
+      - SCHEDULE INSERT AJAX
+    summary: "선택한 종료날짜와 종료시간으로 시간이 겹치지않도록 데이터를 조회"
+    parameters:
+      - name: endDate
+        in: "query"
+        required: true
+        type: "Date"
+        example: "2022-01-13"
+      - name: endTime
+        in: "query"
+        required: true
+        type: "Time"
+        description: "종료시간"
+        example: "08:00:00"
+      - name: roomName
+        in: "query"
+        required: true
+        type: "string"
+        description: "회의실"
+        example: "301호"
+      - name: calendarId
+        in: "query"
+        required: true
+        type: "integer"
+        description: "스케줄 수정중이라면 스케줄ID 입력"
+        example: "null"
+      - name: path
+        in: "query"
+        required: false
+        type: "integer"
+        description: "스케줄 수정중이라면 'modify' 입력"
+        example: "null"
+    responses:
+      '200':
+        description: "조회완료"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Rtn"
+
+/v1/scheduler/closest-time:
+  get:
+    tags:
+      - SCHEDULE INSERT AJAX
+    summary: "시간에 맞춰 인접값을 가져온다"
+    parameters:
+      - name: startDate
+        in: "query"
+        required: true
+        type: "Date"
+        example: "2022-01-13"
+      - name: startTime
+        in: "query"
+        required: true
+        type: "Time"
+        description: "종료시간"
+        example: "08:00:00"
+      - name: roomName
+        in: "query"
+        required: true
+        type: "string"
+        description: "회의실"
+        example: "301호"
+      - name: calendarId
+        in: "query"
+        required: true
+        type: "integer"
+        description: "스케줄 수정중이라면 스케줄ID 입력"
+        example: "null"
+      - name: path
+        in: "query"
+        required: false
+        type: "integer"
+        description: "스케줄 수정중이라면 'modify' 입력"
+        example: "null"
+    responses:
+      '200':
+        description: "조회완료"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Rtn"
+    
+      
+      
+      # requestBody:
+      # required: true
+      # content:
+      #   application/x-www-form-urlencoded:
+      #     schema:
+      #       type: "object"
+      #       properties:
+      #         id:
+      #           type: "integer"
+      #           description: "사번"
+      #           example: "1212"
+      #         name:
+      #           type: "string"
+      #           description: "이름"
+      #           example: "최불암"
+      #         password:
+      #           type: "string"
+      #           description: "비밀번호"
+      #           example: "123123"
+  # 
+  # put:
+  # delete:

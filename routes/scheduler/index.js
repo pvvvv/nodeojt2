@@ -14,10 +14,10 @@ router.put('/',auth, scheduleController.scheduleModify);
 router.delete('/',auth, scheduleController.scheduleDelete);
 
 //스케줄러 통계 전체 일별 주별 월별 구분
-router.get('/statistics/all', scheduleController.scheduleAllStatistics);
-router.get('/statistics/day', scheduleController.scheduleDayStatistics);
-router.get('/statistics/week', scheduleController.scheduleWeekStatistics);
-router.get('/statistics/month', scheduleController.scheduleMonthStatistics);
+router.get('/statistics/all',auth, scheduleController.scheduleAllStatistics);
+router.get('/statistics/day',auth, scheduleController.scheduleDayStatistics);
+router.get('/statistics/week',auth, scheduleController.scheduleWeekStatistics);
+router.get('/statistics/month',auth, scheduleController.scheduleMonthStatistics);
 
 
 // Ajax

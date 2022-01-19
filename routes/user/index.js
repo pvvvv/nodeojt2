@@ -5,7 +5,7 @@ var userController = require('./user-controller');
 var auth = require('../../config/auth');
 
 /* 사번 중복확인 */
-router.post('/findoverlap', userController.findoverlap);
+router.post('/overlap', userController.findoverlap);
 /* 회원가입 */
 router.post('/join', userController.doJoin);
 /* 로그인 + Passport */

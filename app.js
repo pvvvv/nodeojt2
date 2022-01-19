@@ -11,6 +11,7 @@ var schedulerRouter = require('./routes/scheduler/index');
 var userRouter = require('./routes/user/index');
 var passportConfig = require('./config/passport');
 var {sequelize} = require('./models');
+const logger = require('./config/logger');
 
 var app = express();
 //sequelize.sync({ force: true }); //테이블 생성할때 한번 사용. 잘못쓰면 데이터 날아감
@@ -77,7 +78,7 @@ app.use(function(err, req, res, next) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
-
+  
   console.log(err);
   // render the error page
   res.status(err.status || 500);

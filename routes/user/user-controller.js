@@ -28,9 +28,11 @@ exports.findoverlap = async function(req, res, next){
     var id = req.body.id;
     
     if(id.length > 4){
+        statusNum = 400;
         success.text = "사번을 확인해주세요";
         success.overlapCheck = 0;
-        res.status(400).json(success);
+        res.status(statusNum
+            ).json(success);
     }else{
         try{
             var findData = await db.user.findOne({
@@ -38,15 +40,19 @@ exports.findoverlap = async function(req, res, next){
             });
             
             if(findData === null){
+                statusNum = 200;
                 success.text = "사용이 가능한 사번입니다.";
                 success.overlapCheck = 1;
-                statusNum = 200;
             }else{
-                success.errorMessage = "사용중인 아이디입니다.";
-                success.overlapCheck = 0;
                 statusNum = 409
+                success.text = "사용중인 아이디입니다.";
+                success.overlapCheck = 0;
             };
-            res.status(statusNum).json(success);
+            res.status(statusNum).json({
+                code : statusNum,
+                message : success.text,
+                data : success.overlapCheck 
+            });
         } catch (error) {
             next(error);
         };
@@ -69,9 +75,9 @@ exports.doJoin = async function(req, res, next){
         
         if(findData !== null){
             statusNum = 409;
-            success.errorMessage = "이미 가입된 계정입니다";
+            success.text = "이미 가입된 계정입니다";
         }else if(!regId.test(id) || !regPw.test(password)){
-            success.errorMessage = "잘못된 접근입니다.";
+            success.text = "잘못된 접근입니다.";
             statusNum = 400;
         }else{
             var saltRounds = 10;
@@ -88,10 +94,13 @@ exports.doJoin = async function(req, res, next){
                 statusNum = 200;
             } catch (error) {
                 statusNum = 401;
-                success.errorMessage = "가입에 실패했습니다. 고객센터로 전화주세요";
+                success.text = "가입에 실패했습니다. 고객센터로 전화주세요";
             }
         };
-        res.status(statusNum).json(success);
+        res.status(statusNum).json({
+            code : statusNum,
+            message : success.text
+        });
     } catch (error) {
         next(error);
     };
@@ -110,20 +119,28 @@ exports.doLogin = async function(req, res, next){
 
         if(findData === null){
             statusNum = 406;
+            res.status(statusNum).json({
+                code : 406,
+                message : '아이디가 없습니다.'
+            });
         }else if(!bcrypt.compareSync(password, findData.password)){
             statusNum = 401;
+            res.status(statusNum).json({
+                code : 401,
+                message : '비밀번호가 다릅니다'
+            });
         }else{
             var token = jwt.sign(
                 {id: findData.id},
                 jwtKey.jwtKey.SECRET
             );
-            res.json({
+            statusNum = 200;
+            res.status(statusNum).json({
                 code: 200,
                 message: '토큰이 발급되었습니다.',
                 token
             });
         }
-        res.status(statusNum).json();
     } catch (error) {
         next(error);
     }; 

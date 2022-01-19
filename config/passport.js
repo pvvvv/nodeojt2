@@ -8,7 +8,6 @@ var db = require("../models"); // DB
 const jwtKey = require('../config/jwt-index');
 var bcrypt = require('bcrypt');
 
-
 module.exports = () => {
     passport.serializeUser(function(user, done){
         done(null, user);

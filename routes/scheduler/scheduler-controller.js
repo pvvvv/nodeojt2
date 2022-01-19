@@ -26,9 +26,16 @@ exports.schedulerPage = async function(req, res, next){
 
     try{
         if(data == null || data == undefined){
-            res.status(206);
+            res.status(206).json({
+                code : 206,
+                message : "데이터 없음"
+            });
         }else{
-            res.status(200).json(data);
+            res.status(200).json({
+                code : 200,
+                message : "",
+                data : data,
+            });
         }
     } catch (error) {
         next(error);
@@ -80,6 +87,7 @@ exports.findDate = async function(req, res, next){
                 order: [['startDate', 'ASC']]
             });
         }else{
+            logger.info("durl")
             var findData = await db.scheduler.findAll({
                 where : {
                     [OP.or]:[
@@ -111,7 +119,12 @@ exports.findDate = async function(req, res, next){
                 order: [['startDate', 'ASC']]
             });
         }
-        return res.status(200).json(findData);
+
+        res.status(200).json({
+            code : 200,
+            message : "조회성공",
+            data : findData
+        });
     } catch (error) {
         next(error);
     };
@@ -288,7 +301,11 @@ exports.findClosestTime = async function(req, res, next){
                 });
             }
         }
-        res.status(200).json(findData);
+        res.status(200).json({
+            code : 200,
+            message : "조회성공",
+            data : findData
+        });
     } catch (error) {
         next(error);
     };
@@ -328,7 +345,11 @@ exports.findEndDate = async function(req, res, next){
                 order : [['startDate', 'asc']],
             });
         }
-        return res.status(200).json(findData);
+        res.status(200).json({
+            code : 200,
+            message : "조회성공",
+            data : findData
+        });
     } catch (error) {
         next(error);
     }
@@ -340,8 +361,7 @@ exports.scheduleInsert = async function(req, res, next){
     var statusNum;
     var success = {};
     var findMiddleSchedule
-    var {name, location, title, startDate, startTime, endDate, endTime, allday} = req.body;
-    var id = req.session.user.id;
+    var {name, location, title, startDate, startTime, endDate, endTime, allday, id} = req.body;
     var category;
     var start = startDate+"T"+startTime;
     var end = endDate+"T"+endTime;
@@ -355,47 +375,40 @@ exports.scheduleInsert = async function(req, res, next){
     };
 
     try { 
-        if(category == "allday"){
-            findMiddleSchedule = await db.scheduler.findAll({
-                where : {
-                    [OP.or] : [
-                        {
-                            startDate : {
-                                [OP.gte] : start,// >=
-                                [OP.lte] : end,// >=
-                            },
+        findMiddleSchedule = await db.scheduler.findAll({
+            where : {
+                [OP.or] : [
+                    {
+                        startDate : {
+                            [OP.gte] : start,// >=
+                            [OP.lte] : end,// >=
                         },
-                        {
-                            endDate : {
-                                [OP.gte] : start,
-                                [OP.lte] : end
-                            },
+                    },
+                    {
+                        endDate : {
+                            [OP.gte] : start,
+                            [OP.lte] : end
                         },
-                        db.sequelize.where(db.sequelize.literal('\''+start+'\''), {
-                            [OP.between] : [
-                                db.sequelize.col("startDate"),
-                                db.sequelize.col("endDate"),
-                            ],
-                        }),
-                    ],     
-                    location : location
-                },
-                order : [['startDate', 'asc']],
-            });
-        };
-
-        if(startTime == undefined || endTime == undefined){
-            if(findMiddleSchedule !== undefined){
-                success.text = "종일 예약이 불가능한 시간입니다. 달력을 확인해주세요";
-                statusNum = 205;
-            }else{
-                success.text = "예약이 불가능한 시간입니다. 달력을 확인해주세요";
-                statusNum = 206;
-            }
-        }else if(findMiddleSchedule !== undefined && findMiddleSchedule.length > 0){
+                    },
+                    db.sequelize.where(db.sequelize.literal('\''+start+'\''), {
+                        [OP.between] : [
+                            db.sequelize.col("startDate"),
+                            db.sequelize.col("endDate"),
+                        ],
+                    }),
+                ],     
+                location : location
+            },
+            order : [['startDate', 'asc']],
+        });
+        
+        if(category == "allday" && findMiddleSchedule !== undefined){ // 일정이 있으니까 들어가면 안됨
             success.text = "종일 예약이 불가능한 시간입니다. 달력을 확인해주세요";
-            statusNum = 204;
-        }else{
+            statusNum = 206;
+        }else if(category == "time" && findMiddleSchedule !== undefined){
+            success.text = "예약이 불가능한 시간입니다. 달력을 확인해주세요";
+            statusNum = 206;
+        }else if(findMiddleSchedule.length > 0){
             try { // 한번 더 묶어주지 않으면 에러페이지로 이동
                 var insertSuccess = await db.scheduler.create({
                     id: id,
@@ -408,7 +421,7 @@ exports.scheduleInsert = async function(req, res, next){
                 });
                 if(insertSuccess !== null){
                     success.text = "성공";
-                    statusNum = 201;
+                    statusNum = 200;
                 }else{
                     success.text = "새로고침 후 다시 진행해주세요.";
                     statusNum = 400;
@@ -417,7 +430,11 @@ exports.scheduleInsert = async function(req, res, next){
                 next(error);
             }
         }
-        res.status(statusNum).json(success);
+        res.status(statusNum).json({
+            code : statusNum,
+            message : success.text
+        });
+        logger.info("여기왓다6")
     }catch (error) {
         next(error);
     }
@@ -428,40 +445,38 @@ exports.scheduleDelete = async function(req, res, next){
     var statusNum;
     var findData
     var success = {}
-    var nowLoginId = req.session.user.id;
     var {id, calendarId} = req.body;
     
     try {
-        if(nowLoginId !== Number(id)){
-            success.errorMessage = "타인의 일정은 지울 수 없습니다.";
-            statusNum = 401;
-        }else{
-            findData = await db.scheduler.findOne({
-                where : {
+        findData = await db.scheduler.findOne({
+            where : {
+                "calendarId" : calendarId,
+                "id" : id
+            }
+        });
+        if(findData !== null){
+            var delSchedule = await db.scheduler.destroy({
+                where: {
                     "calendarId" : calendarId,
                     "id" : id
                 }
             });
-            if(findData !== null){
-                var delSchedule = await db.scheduler.destroy({
-                    where: {
-                        "calendarId" : calendarId,
-                        "id" : id
-                    }
-                });
-                if(delSchedule == 1){
-                    success.text = "삭제완료";
-                    statusNum = 200;
-                }else{
-                    success.errorMessage = "데이터 삭제 실패!";
-                    statusNum = 410;
-                };
+            if(delSchedule == 1){
+                success.text = "삭제완료";
+                statusNum = 200;
             }else{
-                success.errorMessage = "고객센터로 문의해주세요";
+                success.text = "데이터 삭제 실패!";
                 statusNum = 400;
             };
+        }else{
+            success.text = "데이터 찾을수 없음";
+            statusNum = 409;
         };
-        res.status(statusNum).json(success);
+
+        res.status(statusNum).json({
+            code : statusNum,
+            message : success.text
+        });
     } catch (error) {
         next(error);
     };
@@ -494,8 +509,8 @@ exports.scheduleModify = async function(req, res, next){
     var statusNum;
     var success = {};
     var findMiddleSchedule
-    var {name, location, title, startDate, startTime, endDate, endTime, allday} = req.body;
-    var id = req.session.user.id;
+    var {name, location, title, startDate, startTime, endDate, endTime, allday, id, calendarId} = req.body;
+    var modNum = calendarId;
     var category;
     var start = startDate+"T"+startTime;
     var end = endDate+"T"+endTime;
@@ -509,52 +524,47 @@ exports.scheduleModify = async function(req, res, next){
     };
 
     try { 
-        if(category == "allday"){
-            findMiddleSchedule = await db.scheduler.findAll({
-                where : {
-                    [OP.or] : [
-                        {
-                            startDate : {
-                                [OP.gte] : start,// >=
-                                [OP.lte] : end,// >=
-                            },
+        findMiddleSchedule = await db.scheduler.findAll({
+            where : {
+                [OP.or] : [
+                    {
+                        startDate : {
+                            [OP.gte] : start,// >=
+                            [OP.lte] : end,// >=
                         },
-                        {
-                            endDate : {
-                                [OP.gte] : start,
-                                [OP.lte] : end
-                            },
+                    },
+                    {
+                        endDate : {
+                            [OP.gte] : start,
+                            [OP.lte] : end
                         },
-                        db.sequelize.where(db.sequelize.literal('\''+start+'\''), {
-                            [OP.between] : [
-                                db.sequelize.col("startDate"),
-                                db.sequelize.col("endDate"),
-                            ],
-                        }),
-                    ],
-                    calendarId: {
-                        [sequelize.Op.not]: modNum
-                    }, 
-                    location : location
-                },
-                order : [['startDate', 'asc']],
-            });
-        };
+                    },
+                    db.sequelize.where(db.sequelize.literal('\''+start+'\''), {
+                        [OP.between] : [
+                            db.sequelize.col("startDate"),
+                            db.sequelize.col("endDate"),
+                        ],
+                    }),
+                ],
+                calendarId: {
+                    [sequelize.Op.not]: modNum
+                }, 
+                location : location
+            },
+            order : [['startDate', 'asc']],
+        });
 
-        if(startTime == undefined || endTime == undefined){
-            if(findMiddleSchedule !== undefined){
-                success.text = "종일 예약이 불가능한 시간입니다. 달력을 확인해주세요";
-                statusNum = 205;
-            }else{
-                success.text = "예약이 불가능한 시간입니다. 달력을 확인해주세요";
-                statusNum = 205;
-            }
-        }else if(findMiddleSchedule !== undefined && findMiddleSchedule.length > 0){
+        logger.info(findMiddleSchedule.length > 0);
+
+        if(category == "allday" && findMiddleSchedule.length > 0){ // 일정이 있으니까 들어가면 안됨
             success.text = "종일 예약이 불가능한 시간입니다. 달력을 확인해주세요";
-            statusNum = 204;
-        }else{
+            statusNum = 406;
+        }else if(category == "time" && findMiddleSchedule.length > 0){
+            success.text = "예약이 불가능한 시간입니다. 달력을 확인해주세요";
+            statusNum = 406;
+        }else if(findMiddleSchedule.length == 0){
             try { // 한번 더 묶어주지 않으면 에러페이지로 이동
-                var insertSuccess = await db.scheduler.create({
+                var insertSuccess = await db.scheduler.update({
                     id: id,
                     name : name,
                     title: title,
@@ -562,19 +572,28 @@ exports.scheduleModify = async function(req, res, next){
                     category: category,
                     startDate: start,
                     endDate: end
-                });
+                },{ where : 
+                    {
+                        calendarId : modNum
+                    }   
+                  }
+                );
                 if(insertSuccess !== null){
                     success.text = "성공";
-                    statusNum = 201;
+                    statusNum = 200;
                 }else{
                     success.text = "새로고침 후 다시 진행해주세요.";
-                    statusNum = 205;
+                    statusNum = 400;
                 }
             } catch (error) {
                 next(error);
             }
         }
-        res.status(statusNum).json(success);
+
+        res.status(statusNum).json({
+            code : statusNum,
+            message : success.text
+        });
     }catch (error) {
         next(error);
     }
@@ -589,6 +608,7 @@ exports.scheduleAllStatistics = async function(req, res, next){
     var OP = sequelize.Op;
     var {startDateTime, endDateTime, location, id} = req.query
 
+    console.log(startDateTime, endDateTime, location, id);
     if(location == "전체"){
         location = "호";
     }
@@ -596,7 +616,7 @@ exports.scheduleAllStatistics = async function(req, res, next){
     var likeQuery = {[OP.like]:'%'+location+'%'}
 
     try {
-        if(id == undefined){
+        if(id == "all"){
             var data = await db.scheduler.findAll({ // 선택기간 전체일정
                 where : {
                     startDate : {
@@ -624,7 +644,11 @@ exports.scheduleAllStatistics = async function(req, res, next){
         }
 
         logger.info("data : " + data);
-        res.status(200).json(data);
+        res.status(200).json({
+            code : 200,
+            message : "통계완료",
+            data : data
+        });
     } catch (error) {
         logger.error(error);
         next(error);
@@ -645,9 +669,8 @@ exports.scheduleDayStatistics = async function(req, res, next){
     var likeQuery = {[OP.like]:'%'+location+'%'}
 
     try {
-        if(id == undefined){
+        if(id == "all"){
             logger.info("일별로 전체일정 조회")
-            
             var data = await db.scheduler.findAll({
                 where : {
                     startDate : {
@@ -671,7 +694,11 @@ exports.scheduleDayStatistics = async function(req, res, next){
         }
 
         logger.info("data : " + data);
-        res.status(200).json(data);
+        res.status(200).json({
+            code : 200,
+            message : "통계완료",
+            data : data
+        });
     } catch (error) {
         logger.error(error);
         next(error);
@@ -695,7 +722,7 @@ exports.scheduleWeekStatistics = async function(req, res, next){
     var likeQuery = {[OP.like]:'%'+location+'%'}
 
     try {
-        if(id == undefined){
+        if(id == "all"){
             var data = await db.scheduler.findAll({
                 where : {
                     startDate : {
@@ -723,7 +750,11 @@ exports.scheduleWeekStatistics = async function(req, res, next){
         }
 
         logger.info("data : " + data);
-        res.status(200).json(data);
+        res.status(200).json({
+            code : 200,
+            message : "통계완료",
+            data : data
+        });
     } catch (error) {
         logger.error(error);
         next(error);
@@ -739,7 +770,7 @@ exports.scheduleMonthStatistics = async function(req, res, next){
     var maxDate = new Date(yyyy,mm,1).toISOString().substring(0,10)+"T23:59:59";
 
     try {
-        if(id == undefined){
+        if(id == "all"){
             var data = await db.scheduler.findAll({
                 where : {
                     startDate : {
@@ -769,7 +800,11 @@ exports.scheduleMonthStatistics = async function(req, res, next){
         }
 
         logger.info("data : " + data);
-        res.status(200).json(data);
+        res.status(200).json({
+            code : 200,
+            message : "통계완료",
+            data : data
+        });
     } catch (error) {
         logger.error(error);
         next(error);

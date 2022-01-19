@@ -11,7 +11,7 @@ const options = {
             description: '스웨~~~~~~~~~ㄱ'
         },
         host: 'localhost:3000',
-        basePath: '/',
+        basePath: '/v1',
         components: {
             securitySchemes: {
                 bearerAuth: {
